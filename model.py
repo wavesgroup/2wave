@@ -179,6 +179,7 @@ class WaveModulationModel:
             range(1, self.num_time_steps),
             description="Running the model",
             total=self.num_time_steps - 1,
+            auto_refresh=False,
         ):
             self.current_time_step = n - 1
             self.k[n] = rk4(
