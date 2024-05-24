@@ -11,14 +11,24 @@ def angular_frequency(g: float, k: float, u: float = 0) -> float:
     return np.sqrt(g * k) + k * u
 
 
-def elevation(x: float, t: float, a: float, k: float, omega: float) -> float:
+def elevation_linear(x: float, t: float, a: float, k: float, omega: float) -> float:
     return a * np.cos(k * x - omega * t)
+
+
+def elevation_stokes(x: float, t: float, a: float, k: float, omega: float) -> float:
+    phase = k * x - omega * t
+    term1 = np.cos(phase)
+    term2 = 0.5 * a * k * np.cos(2 * phase)
+    term3 = (a * k) ** 2 * (3 / 8 * np.cos(3 * phase) - 1 / 16 * np.cos(phase))
+    return a * (term1 + term2 + term3)
 
 
 def gravity(
     x: float, t: float, a: float, k: float, omega: float, g0: float, order: int = 3
 ) -> float:
-    """Graviational acceleration at the surface of a long wave."""
+    """Graviational acceleration at the surface of a long wave.
+    Currently this is an analytical solution for a linear long wave.
+    """
     assert order in [0, 1, 2, 3]
     phi = k * x - omega * t
     term1 = -a * k * np.cos(phi)
@@ -136,12 +146,20 @@ class WaveModulationModel:
 
     def run(
         self,
+        wave_type: str = "linear",
         ramp_type: str = None,
         num_ramp_periods: int = 5,
         num_waves_in_group: int = 10,
         save_tendencies: bool = False,
     ):
         """Integrate the model forward in time."""
+        if wave_type == "linear":
+            self.elevation = elevation_linear
+        elif wave_type == "stokes":
+            self.elevation = elevation_stokes
+        else:
+            raise ValueError("Invalid wave_type")
+
         if not ramp_type in [None, "linear", "groups"]:
             raise ValueError("Invalid ramp_type")
 
@@ -199,6 +217,7 @@ class WaveModulationModel:
     def wavenumber_tendency(self, k, t):
         """Compute the tendencies of the wavenumber conservation balance at time t."""
         eta_ramp = self.get_elevation_ramp(t)
+        elevation = self.elevation
 
         eta = eta_ramp * elevation(self.x, t, self.a_long, self.k_long, self.omega_long)
         u = orbital_velocity(
@@ -241,6 +260,7 @@ class WaveModulationModel:
     def waveaction_tendency(self, N, t):
         """Compute the tendencies of the wave action balance at time t."""
         eta_ramp = self.get_elevation_ramp(t)
+        elevation = self.elevation
 
         eta = eta_ramp * elevation(self.x, t, self.a_long, self.k_long, self.omega_long)
         u = orbital_velocity(
