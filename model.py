@@ -61,8 +61,8 @@ def gravity_stokes(
                 + a * k * np.sin(2 * psi)
                 + 9 / 8 * (a * k) ** 2 * np.sin(3 * psi)
             )
-            * np.exp(k * eta)
         )
+        * np.exp(k * eta)
     )
     return res
 
