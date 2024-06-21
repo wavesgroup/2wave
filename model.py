@@ -240,7 +240,9 @@ class WaveModulationModel:
         self.omega[-1] = self.omega[-2]
 
         omega0 = angular_frequency(self.grav0, self.k_short)
-        self.a = self.a_short * np.sqrt(self.N * omega0 / self.omega)
+        self.a = self.a_short * np.sqrt(
+            self.grav0 * self.N * omega0 / (self.omega * self.g)
+        )
 
     def wavenumber_tendency(self, k, t):
         """Compute the tendencies of the wavenumber conservation balance at time t."""
