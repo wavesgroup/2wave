@@ -1,6 +1,16 @@
 # 2wave
 
-A hydrodynamic modulation model for surface waves.
+A hydrodynamic modulation model for short surface gravity waves
+riding on longer waves.
+
+## Features
+
+* Solves the full wave crest and action balance equations in 1-d.
+* Linear (1st order) or Stokes (3rd order) long waves
+* Infinite long-wave trains or long-wave groups
+* Curvilinear effects on effective gravity of short waves
+* Optionally, output all tendencies at all time steps
+* Output as Xarray Dataset
 
 ## Getting started
 
