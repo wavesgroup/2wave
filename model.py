@@ -23,6 +23,23 @@ def elevation_stokes(x: float, t: float, a: float, k: float, omega: float) -> fl
     return a * (term1 + term2 + term3)
 
 
+def surface_slope(
+    x: float, t: float, a: float, k: float, omega: float, wave_type: str = "linear"
+) -> float:
+    phase = k * x - omega * t
+    ak = a * k
+    if wave_type == "linear":
+        slope = -ak * np.sin(phase)
+    elif wave_type == "stokes":
+        term1 = -ak * np.sin(phase)
+        term2 = -(ak**2) * np.sin(2 * phase)
+        term3 = -(ak**3) * (9 / 8 * np.sin(3 * phase) - 1 / 16 * np.sin(phase))
+        slope = term1 + term2 + term3
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
+    return slope
+
+
 def gravity_linear(
     x: float,
     t: float,
@@ -162,8 +179,8 @@ def gravity_curvilinear(
         raise ValueError("long_wave must be either 'linear' or 'stokes'")
     dU_dt = orbital_horizontal_acceleration(x, t, a, k, omega, wave_type)
     dW_dt = orbital_vertical_acceleration(x, t, a, k, omega, wave_type)
-    alpha = np.arctan(diff(eta) / dx)
-    g = g0 * np.cos(alpha) + dW_dt * np.cos(alpha) + dU_dt * np.sin(alpha)
+    slope = surface_slope(x, t, a, k, omega, wave_type)
+    g = g0 * np.cos(slope) + dW_dt * np.cos(slope) + dU_dt * np.sin(slope)
     return g
 
 
