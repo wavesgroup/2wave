@@ -11,16 +11,19 @@ def angular_frequency(g: float, k: float, u: float = 0) -> float:
     return np.sqrt(g * k) + k * u
 
 
-def elevation_linear(x: float, t: float, a: float, k: float, omega: float) -> float:
-    return a * np.cos(k * x - omega * t)
-
-
-def elevation_stokes(x: float, t: float, a: float, k: float, omega: float) -> float:
+def elevation(
+    x: float, t: float, a: float, k: float, omega: float, wave_type: str = "linear"
+) -> float:
     phase = k * x - omega * t
-    term1 = np.cos(phase)
-    term2 = 0.5 * a * k * np.cos(2 * phase)
-    term3 = (a * k) ** 2 * (3 / 8 * np.cos(3 * phase) - 1 / 16 * np.cos(phase))
-    return a * (term1 + term2 + term3)
+    if wave_type == "linear":
+        return a * np.cos(phase)
+    elif wave_type == "stokes":
+        term1 = np.cos(phase)
+        term2 = 0.5 * a * k * np.cos(2 * phase)
+        term3 = (a * k) ** 2 * (3 / 8 * np.cos(3 * phase) - 1 / 16 * np.cos(phase))
+        return a * (term1 + term2 + term3)
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
 
 
 def surface_slope(
@@ -40,48 +43,45 @@ def surface_slope(
     return slope
 
 
-def gravity_linear(
+def gravity(
     x: float,
     t: float,
     a: float,
     k: float,
     omega: float,
     g0: float = 9.8,
-) -> float:
-    """Gravitaitional acceleration at the surface of a long wave.
-    Currently this is an analytical solution for a linear long wave.
-    """
-    phi = k * x - omega * t
-    eta = elevation_linear(x, t, a, k, omega)
-    return g0 * (1 - a * k * np.exp(k * eta) * (np.cos(phi) - a * k * np.sin(phi) ** 2))
-
-
-def gravity_stokes(
-    x: float, t: float, a: float, k: float, omega: float, g0: float = 9.8
+    wave_type: str = "linear",
 ) -> float:
     """Gravitational acceleration at the surface of a long wave.
-    Currently this is an analytical solution for a linear long wave.
+    Supports both linear and Stokes wave types.
     """
-    psi = k * x - omega * t
-    eta = elevation_stokes(x, t, a, k, omega)
-    res = g0 * (
-        1
-        - a
-        * k
-        * (
-            np.cos(psi)
+    phase = k * x - omega * t
+    eta = elevation(x, t, a, k, omega, wave_type=wave_type)
+
+    if wave_type == "linear":
+        return g0 * (
+            1 - a * k * np.exp(k * eta) * (np.cos(phase) - a * k * np.sin(phase) ** 2)
+        )
+    elif wave_type == "stokes":
+        return g0 * (
+            1
             - a
             * k
-            * np.sin(psi)
             * (
-                (1 - 1 / 16 * (a * k) ** 2) * np.sin(psi)
-                + a * k * np.sin(2 * psi)
-                + 9 / 8 * (a * k) ** 2 * np.sin(3 * psi)
+                np.cos(phase)
+                - a
+                * k
+                * np.sin(phase)
+                * (
+                    (1 - 1 / 16 * (a * k) ** 2) * np.sin(phase)
+                    + a * k * np.sin(2 * phase)
+                    + 9 / 8 * (a * k) ** 2 * np.sin(3 * phase)
+                )
             )
+            * np.exp(k * eta)
         )
-        * np.exp(k * eta)
-    )
-    return res
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
 
 
 def orbital_horizontal_velocity(
@@ -103,12 +103,12 @@ def orbital_horizontal_acceleration(
 ) -> float:
     phase = k * x - omega * t
     if wave_type == "linear":
-        eta = elevation_linear(x, t, a, k, omega)
+        eta = elevation(x, t, a, k, omega, wave_type)
         dU_dt = (
             a * omega**2 * np.exp(k * eta) * np.sin(phase) * (a * k * np.cos(phase) + 1)
         )
     elif wave_type == "stokes":
-        eta = elevation_stokes(x, t, a, k, omega)
+        eta = elevation(x, t, a, k, omega, wave_type)
         term1 = a * omega**2 * np.exp(k * eta) * np.sin(phase)
         term2 = (
             a**2
@@ -134,7 +134,7 @@ def orbital_vertical_acceleration(
 ) -> float:
     phase = k * x - omega * t
     if wave_type == "linear":
-        eta = elevation_linear(x, t, a, k, omega)
+        eta = elevation(x, t, a, k, omega, wave_type)
         dW_dt = (
             a
             * omega**2
@@ -142,7 +142,7 @@ def orbital_vertical_acceleration(
             * (a * k * np.sin(phase) ** 2 - np.cos(phase))
         )
     elif wave_type == "stokes":
-        eta = elevation_stokes(x, t, a, k, omega)
+        eta = elevation(x, t, a, k, omega, wave_type)
         term1 = -a * omega**2 * np.exp(k * eta) * np.cos(phase)
         term2 = (
             a**2
@@ -158,6 +158,8 @@ def orbital_vertical_acceleration(
             )
         )
         dW_dt = term1 + term2
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
     return dW_dt
 
 
@@ -170,13 +172,6 @@ def gravity_curvilinear(
     g0: float = 9.8,
     wave_type: str = "linear",
 ) -> float:
-    dx = np.diff(x)[0]
-    if wave_type == "linear":
-        eta = elevation_linear(x, t, a, k, omega)
-    elif wave_type == "stokes":
-        eta = elevation_stokes(x, t, a, k, omega)
-    else:
-        raise ValueError("long_wave must be either 'linear' or 'stokes'")
     dU_dt = orbital_horizontal_acceleration(x, t, a, k, omega, wave_type)
     dW_dt = orbital_vertical_acceleration(x, t, a, k, omega, wave_type)
     slope = surface_slope(x, t, a, k, omega, wave_type)
@@ -282,13 +277,10 @@ class WaveModulationModel:
         save_tendencies: bool = False,
     ):
         """Integrate the model forward in time."""
-        if wave_type == "linear":
-            self.elevation = elevation_linear
-        elif wave_type == "stokes":
-            self.elevation = elevation_stokes
-        else:
+        if wave_type not in ["linear", "stokes"]:
             raise ValueError("Invalid wave_type")
 
+        self.elevation = elevation
         self.gravity = gravity_curvilinear
         self._wave_type = wave_type
 
@@ -351,9 +343,10 @@ class WaveModulationModel:
     def wavenumber_tendency(self, k, t):
         """Compute the tendencies of the wavenumber conservation balance at time t."""
         eta_ramp = self.get_elevation_ramp(t)
-        elevation = self.elevation
 
-        eta = eta_ramp * elevation(self.x, t, self.a_long, self.k_long, self.omega_long)
+        eta = eta_ramp * self.elevation(
+            self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
+        )
         u = orbital_horizontal_velocity(
             self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
         )
@@ -394,9 +387,10 @@ class WaveModulationModel:
     def waveaction_tendency(self, N, t):
         """Compute the tendencies of the wave action balance at time t."""
         eta_ramp = self.get_elevation_ramp(t)
-        elevation = self.elevation
 
-        eta = eta_ramp * elevation(self.x, t, self.a_long, self.k_long, self.omega_long)
+        eta = eta_ramp * self.elevation(
+            self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
+        )
         u = orbital_horizontal_velocity(
             self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
         )
