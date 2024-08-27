@@ -158,6 +158,8 @@ def orbital_vertical_acceleration(
             )
         )
         dW_dt = term1 + term2
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
     return dW_dt
 
 

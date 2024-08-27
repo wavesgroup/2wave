@@ -1,0 +1,18 @@
+[project]
+name = "2wave"
+description = "Hydrodynamic modulation for short gravity waves riding on longer waves"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name="Milan Curcic", email="mcurcic@miami.edu" },
+]
+dependencies = [
+    "numpy",
+    "rich",
+    "xarray",
+]
+
+[tool.setuptools]
+py-modules = ["twowave"]
