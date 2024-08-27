@@ -16,3 +16,7 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = ["twowave"]
+
+[tool.pytest.ini_options]
+testpaths = ["test_twowave.py"]
+addopts = "-v"
