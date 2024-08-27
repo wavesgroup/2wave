@@ -43,48 +43,45 @@ def surface_slope(
     return slope
 
 
-def gravity_linear(
+def gravity(
     x: float,
     t: float,
     a: float,
     k: float,
     omega: float,
     g0: float = 9.8,
+    wave_type: str = "linear",
 ) -> float:
     """Gravitational acceleration at the surface of a long wave.
-    Currently this is an analytical solution for a linear long wave.
+    Supports both linear and Stokes wave types.
     """
-    phi = k * x - omega * t
-    eta = elevation(x, t, a, k, omega, wave_type="linear")
-    return g0 * (1 - a * k * np.exp(k * eta) * (np.cos(phi) - a * k * np.sin(phi) ** 2))
+    phase = k * x - omega * t
+    eta = elevation(x, t, a, k, omega, wave_type=wave_type)
 
-
-def gravity_stokes(
-    x: float, t: float, a: float, k: float, omega: float, g0: float = 9.8
-) -> float:
-    """Gravitational acceleration at the surface of a long wave.
-    Currently this is an analytical solution for a linear long wave.
-    """
-    psi = k * x - omega * t
-    eta = elevation(x, t, a, k, omega, wave_type="stokes")
-    res = g0 * (
-        1
-        - a
-        * k
-        * (
-            np.cos(psi)
+    if wave_type == "linear":
+        return g0 * (
+            1 - a * k * np.exp(k * eta) * (np.cos(phase) - a * k * np.sin(phase) ** 2)
+        )
+    elif wave_type == "stokes":
+        return g0 * (
+            1
             - a
             * k
-            * np.sin(psi)
             * (
-                (1 - 1 / 16 * (a * k) ** 2) * np.sin(psi)
-                + a * k * np.sin(2 * psi)
-                + 9 / 8 * (a * k) ** 2 * np.sin(3 * psi)
+                np.cos(phase)
+                - a
+                * k
+                * np.sin(phase)
+                * (
+                    (1 - 1 / 16 * (a * k) ** 2) * np.sin(phase)
+                    + a * k * np.sin(2 * phase)
+                    + 9 / 8 * (a * k) ** 2 * np.sin(3 * phase)
+                )
             )
+            * np.exp(k * eta)
         )
-        * np.exp(k * eta)
-    )
-    return res
+    else:
+        raise ValueError("wave_type must be either 'linear' or 'stokes'")
 
 
 def orbital_horizontal_velocity(
