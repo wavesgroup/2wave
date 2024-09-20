@@ -8,7 +8,7 @@ riding on longer waves.
 * Solves the full wave crest and action balance equations in 1-d.
 * Linear (1st order) or Stokes (3rd order) long waves
 * Infinite long-wave trains or long-wave groups
-* Curvilinear effects on effective gravity of short waves
+* Effective gravity, propagation, and advection in curvilinear coordinates
 * Optionally, output all tendencies at all time steps
 * Output as Xarray Dataset
 
