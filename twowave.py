@@ -237,6 +237,7 @@ class WaveModulationModel:
         grid_size: int = 100,
         time_step: float = 1e-2,
         num_periods: int = 10,
+        curvilinear: bool = True,
     ) -> None:
         """Initialize the wave modulation model."""
         self.a_long = a_long
@@ -252,8 +253,12 @@ class WaveModulationModel:
         self.phase = np.linspace(0, 2 * np.pi, self.grid_size, endpoint=False)
         self.x = self.phase / self.k_long
         self.dx = self.x[1] - self.x[0]
+        self.ds = self.dx * np.ones(
+            self.grid_size
+        )  # surface-following horizontal coordinate
         self.time = np.arange(0, self.num_periods * self.T_long + self.dt, self.dt)
         self.num_time_steps = len(self.time)
+        self.curvilinear = curvilinear
 
     def get_elevation_ramp(self, t: float) -> float:
         """Determine the long-wave profile."""
@@ -347,9 +352,26 @@ class WaveModulationModel:
         eta = eta_ramp * self.elevation(
             self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
         )
-        u = orbital_horizontal_velocity(
-            self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
-        )
+
+        if self.curvilinear:
+            slope = eta_ramp * surface_slope(
+                self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
+            )
+            alpha = np.arctan(slope)
+            self.ds = self.dx / np.cos(alpha)
+            u = orbital_horizontal_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+            w = orbital_vertical_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+            vel = u * np.cos(alpha) + w * np.sin(alpha)
+        else:
+            self.ds = self.dx * np.ones(self.grid_size)
+            vel = orbital_horizontal_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+
         g = self.gravity(
             self.x,
             t,
@@ -365,10 +387,10 @@ class WaveModulationModel:
         self.omega[self.current_time_step] = omega
 
         Cg = omega / k / 2
-        k_propagation_tendency = -Cg * diff(k) / self.dx
-        k_advection_tendency = -u * diff(k) / self.dx
-        k_convergence_tendency = -k * diff(u) / self.dx
-        k_inhomogeneity_tendency = -0.5 * np.sqrt(k / g) * diff(g) / self.dx
+        k_propagation_tendency = -Cg * diff(k) / self.ds
+        k_advection_tendency = -vel * diff(k) / self.ds
+        k_convergence_tendency = -k * diff(vel) / self.ds
+        k_inhomogeneity_tendency = -0.5 * np.sqrt(k / g) * diff(g) / self.ds
         res = (
             k_propagation_tendency
             + k_advection_tendency
@@ -391,9 +413,26 @@ class WaveModulationModel:
         eta = eta_ramp * self.elevation(
             self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
         )
-        u = orbital_horizontal_velocity(
-            self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
-        )
+
+        if self.curvilinear:
+            slope = eta_ramp * surface_slope(
+                self.x, t, self.a_long, self.k_long, self.omega_long, self._wave_type
+            )
+            alpha = np.arctan(slope)
+            self.ds = self.dx / np.cos(alpha)
+            u = orbital_horizontal_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+            w = orbital_vertical_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+            vel = u * np.cos(alpha) + w * np.sin(alpha)
+        else:
+            self.ds = self.dx * np.ones(self.grid_size)
+            vel = orbital_horizontal_velocity(
+                self.x, eta, t, eta_ramp * self.a_long, self.k_long, self.omega_long
+            )
+
         g = self.gravity(
             self.x,
             t,
@@ -408,11 +447,10 @@ class WaveModulationModel:
             / self.k[self.current_time_step]
             / 2
         )
-        res = -diff((Cg + u) * N) / self.dx
-        N_propagation_tendency = -Cg * diff(N) / self.dx
-        N_advection_tendency = -u * diff(N) / self.dx
-        N_convergence_tendency = -N * diff(u) / self.dx
-        N_inhomogeneity_tendency = -N * diff(Cg) / self.dx
+        N_propagation_tendency = -Cg * diff(N) / self.ds
+        N_advection_tendency = -vel * diff(N) / self.ds
+        N_convergence_tendency = -N * diff(vel) / self.ds
+        N_inhomogeneity_tendency = -N * diff(Cg) / self.ds
         if self.save_tendencies:
             self.N_propagation_tendency[self.current_time_step] = N_propagation_tendency
             self.N_advection_tendency[self.current_time_step] = N_advection_tendency
