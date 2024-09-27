@@ -235,7 +235,6 @@ class WaveModulationModel:
         a_short: float | np.ndarray = 0.01,
         k_short: float | np.ndarray = 10,
         grid_size: int = 100,
-        time_step: float = 1e-2,
         num_periods: int = 10,
         curvilinear: bool = True,
     ) -> None:
@@ -246,16 +245,15 @@ class WaveModulationModel:
         self.a_short = a_short
         self.k_short = k_short
         self.grid_size = grid_size
-        self.dt = time_step
         self.num_periods = num_periods
         self.omega_long = angular_frequency(self.grav0, self.k_long, 0)
         self.T_long = 2 * np.pi / self.omega_long
         self.phase = np.linspace(0, 2 * np.pi, self.grid_size, endpoint=False)
         self.x = self.phase / self.k_long
         self.dx = self.x[1] - self.x[0]
-        self.ds = self.dx * np.ones(
-            self.grid_size
-        )  # surface-following horizontal coordinate
+        self.ds = self.dx * np.ones(self.grid_size)
+        Cg_short = 0.5 * angular_frequency(grav0, k_short) / k_short
+        self.dt = self.dx / (Cg_short + self.a_long * self.omega_long)  # CFL
         self.time = np.arange(0, self.num_periods * self.T_long + self.dt, self.dt)
         self.num_time_steps = len(self.time)
         self.curvilinear = curvilinear
