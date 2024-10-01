@@ -17,7 +17,7 @@ riding on longer waves.
 ### Install 2wave
 
 ```
-pip install 2wave
+pip install git+https://github.com/wavesgroup/2wave
 ```
 
 ### Run the model
