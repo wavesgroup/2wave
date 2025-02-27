@@ -6,7 +6,7 @@ riding on longer waves.
 ## Features
 
 * Solves the full wave crest and action balance equations in 1-d.
-* Linear (1st order) or Stokes (3rd order) long waves
+* Wave types: 1st order linear wave, 3rd order Stokes wave, fully nonlinear wave (SSGW)
 * Infinite long-wave trains or long-wave groups
 * Effective gravity, propagation, and advection in curvilinear coordinates
 * Optionally, output all tendencies at all time steps
@@ -17,6 +17,7 @@ riding on longer waves.
 ### Install 2wave
 
 ```
+pip install git+https://github.com/wavesgroup/ssgw # dependency
 pip install git+https://github.com/wavesgroup/2wave
 ```
 
@@ -38,6 +39,7 @@ cd 2wave
 python3 -m venv venv
 source venv/bin/activate
 pip install -U .
+pip install -U https://github.com/wavesgroup/ssgw
 pytest
 ```
 
