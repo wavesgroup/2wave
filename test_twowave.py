@@ -43,8 +43,18 @@ def test_elevation():
 
 
 def test_gravity():
-    assert gravity(0, 0, 0, 1, G0, wave_type="linear") == G0
-    assert gravity(0, 0, 0, 1, G0, wave_type="stokes") == G0
+    # Test with array input since gravity no longer works with scalar x
+    phase = np.linspace(0, 2 * np.pi, 128, endpoint=False)
+    k = 1
+    a = 0.1
+    x = phase / k
+    omega = np.sqrt(G0 * k)
+    assert np.isclose(
+        gravity(x, 0, a, k, omega, G0, wave_type="linear")[0], 8.83, rtol=1e-2
+    )
+    assert np.isclose(
+        gravity(x, 0, a, k, omega, G0, wave_type="stokes")[0], 8.83, rtol=1e-2
+    )
 
 
 def test_wave_modulation_model():

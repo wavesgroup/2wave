@@ -100,67 +100,6 @@ def surface_slope(
         raise ValueError("wave_type must be 'linear', 'stokes', or 'nonlinear'")
 
 
-def gravity(
-    x: float,
-    t: float,
-    a: float,
-    k: float,
-    omega: float,
-    g0: float = 9.8,
-    wave_type: str = "linear",
-    nonlinear_props: tuple = None,
-) -> float:
-    """Gravitational acceleration at the surface of a long wave.
-    Supports linear, Stokes, and nonlinear wave types.
-    """
-    phase = k * x - omega * t
-
-    if wave_type == "linear":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        return g0 * (
-            1 - a * k * np.exp(k * eta) * (np.cos(phase) - a * k * np.sin(phase) ** 2)
-        )
-    elif wave_type == "stokes":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        return g0 * (
-            1
-            - a
-            * k
-            * (
-                np.cos(phase)
-                - a
-                * k
-                * np.sin(phase)
-                * (
-                    (1 - 1 / 16 * (a * k) ** 2) * np.sin(phase)
-                    + a * k * np.sin(2 * phase)
-                    + 9 / 8 * (a * k) ** 2 * np.sin(3 * phase)
-                )
-            )
-            * np.exp(k * eta)
-        )
-    elif wave_type == "nonlinear":
-        if nonlinear_props is None:
-            raise ValueError("nonlinear_props must be provided for nonlinear wave type")
-        positions, _, _, _, _, az = nonlinear_props
-
-        # Handle both scalar and array inputs
-        x_array = np.atleast_1d(x)
-        result = np.zeros_like(x_array, dtype=float)
-
-        # Apply for each x value
-        for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
-            x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Get effective gravity at this position
-            result[i] = g0 + np.interp(x_phase * k, positions, az, period=2 * np.pi)
-
-        # Return scalar if input was scalar
-        return result[0] if np.isscalar(x) else result
-    else:
-        raise ValueError("wave_type must be 'linear', 'stokes', or 'nonlinear'")
-
-
 def orbital_horizontal_velocity(
     x: float,
     z: float,
@@ -235,122 +174,7 @@ def orbital_vertical_velocity(
         raise ValueError("wave_type must be 'linear', 'stokes', or 'nonlinear'")
 
 
-def orbital_horizontal_acceleration(
-    x: float,
-    t: float,
-    a: float,
-    k: float,
-    omega: float,
-    wave_type: str = "linear",
-    nonlinear_props: tuple = None,
-) -> float:
-    phase = k * x - omega * t
-    if wave_type == "linear":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        dU_dt = (
-            a * omega**2 * np.exp(k * eta) * np.sin(phase) * (a * k * np.cos(phase) + 1)
-        )
-        return dU_dt
-    elif wave_type == "stokes":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        term1 = a * omega**2 * np.exp(k * eta) * np.sin(phase)
-        term2 = (
-            a**2
-            * omega**2
-            * k
-            * np.exp(k * eta)
-            * np.cos(phase)
-            * (
-                np.sin(phase)
-                + a * k * np.sin(2 * phase)
-                + (a * k) ** 2
-                * (9 / 8.0 * np.sin(3 * phase) - 1 / 16.0 * np.sin(phase))
-            )
-        )
-        dU_dt = term1 + term2
-        return dU_dt
-    elif wave_type == "nonlinear":
-        if nonlinear_props is None:
-            raise ValueError("nonlinear_props must be provided for nonlinear wave type")
-        positions, _, _, _, ax, _ = nonlinear_props
-
-        # Handle both scalar and array inputs
-        x_array = np.atleast_1d(x)
-        result = np.zeros_like(x_array, dtype=float)
-
-        # Apply for each x value
-        for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
-            x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Get horizontal acceleration at this position
-            result[i] = np.interp(x_phase * k, positions, ax, period=2 * np.pi)
-
-        # Return scalar if input was scalar
-        return result[0] if np.isscalar(x) else result
-    else:
-        raise ValueError("wave_type must be 'linear', 'stokes', or 'nonlinear'")
-
-
-def orbital_vertical_acceleration(
-    x: float,
-    t: float,
-    a: float,
-    k: float,
-    omega: float,
-    wave_type: str = "linear",
-    nonlinear_props: tuple = None,
-) -> float:
-    phase = k * x - omega * t
-    if wave_type == "linear":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        dW_dt = (
-            a
-            * omega**2
-            * np.exp(k * eta)
-            * (a * k * np.sin(phase) ** 2 - np.cos(phase))
-        )
-        return dW_dt
-    elif wave_type == "stokes":
-        eta = elevation(x, t, a, k, omega, wave_type)
-        term1 = -a * omega**2 * np.exp(k * eta) * np.cos(phase)
-        term2 = (
-            a**2
-            * omega**2
-            * k
-            * np.exp(k * eta)
-            * np.sin(phase)
-            * (
-                np.sin(phase)
-                + a * k * np.sin(2 * phase)
-                + (a * k) ** 2
-                * (9 / 8.0 * np.sin(3 * phase) - 1 / 16.0 * np.sin(phase))
-            )
-        )
-        dW_dt = term1 + term2
-        return dW_dt
-    elif wave_type == "nonlinear":
-        if nonlinear_props is None:
-            raise ValueError("nonlinear_props must be provided for nonlinear wave type")
-        positions, _, _, _, _, az = nonlinear_props
-
-        # Handle both scalar and array inputs
-        x_array = np.atleast_1d(x)
-        result = np.zeros_like(x_array, dtype=float)
-
-        # Apply for each x value
-        for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
-            x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Get vertical acceleration at this position
-            result[i] = np.interp(x_phase * k, positions, az, period=2 * np.pi)
-
-        # Return scalar if input was scalar
-        return result[0] if np.isscalar(x) else result
-    else:
-        raise ValueError("wave_type must be 'linear', 'stokes', or 'nonlinear'")
-
-
-def gravity_curvilinear(
+def gravity(
     x: float,
     t: float,
     a: float,
@@ -359,13 +183,20 @@ def gravity_curvilinear(
     g0: float = 9.8,
     wave_type: str = "linear",
     nonlinear_props: tuple = None,
+    curvilinear: bool = True,
 ) -> float:
-    dU_dt = orbital_horizontal_acceleration(
-        x, t, a, k, omega, wave_type, nonlinear_props
-    )
-    dW_dt = orbital_vertical_acceleration(x, t, a, k, omega, wave_type, nonlinear_props)
-    slope = surface_slope(x, t, a, k, omega, wave_type, nonlinear_props)
-    g = g0 * np.cos(slope) + dW_dt * np.cos(slope) + dU_dt * np.sin(slope)
+    z = elevation(x, t, a, k, omega, wave_type, nonlinear_props)
+    U = orbital_horizontal_velocity(x, z, t, a, k, omega, wave_type, nonlinear_props)
+    W = orbital_vertical_velocity(x, z, t, a, k, omega, wave_type, nonlinear_props)
+    Cp = omega / k
+    dx = np.diff(x)[0]
+    a_z = -diff(W) / dx * (Cp - U)
+    if curvilinear:
+        a_x = -diff(U) / dx * (Cp - U)
+        slope = surface_slope(x, t, a, k, omega, wave_type, nonlinear_props)
+        g = g0 * np.cos(slope) + a_z * np.cos(slope) + a_x * np.sin(slope)
+    else:
+        g = g0 + a_z
     return g
 
 
@@ -387,8 +218,8 @@ def nonlinear_wave_properties(
 
     dx = diff(x)
     dx[dx < 0] += np.pi
-    a_z = -diff(w) / dx * Cp
-    a_x = -diff(u) / dx * Cp
+    a_z = -diff(w) / dx * (Cp - u)
+    a_x = -diff(u) / dx * (Cp - u)
 
     # Shift back by pi
     x += np.pi
@@ -518,7 +349,7 @@ class WaveModulationModel:
             )
 
         self.elevation = elevation
-        self.gravity = gravity_curvilinear if self.curvilinear else gravity
+        self.gravity = gravity
         self._wave_type = wave_type
 
         if wave_type == "nonlinear":
@@ -671,6 +502,7 @@ class WaveModulationModel:
             self.grav0,
             wave_type=self._wave_type,
             nonlinear_props=self.nonlinear_props,
+            curvilinear=self.curvilinear,
         )
         self.g[self.current_time_step] = g
 
@@ -771,6 +603,7 @@ class WaveModulationModel:
             self.grav0,
             wave_type=self._wave_type,
             nonlinear_props=self.nonlinear_props,
+            curvilinear=self.curvilinear,
         )
         Cg = (
             angular_frequency(g, self.k[self.current_time_step])
