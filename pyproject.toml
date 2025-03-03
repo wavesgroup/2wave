@@ -11,7 +11,9 @@ authors = [
 dependencies = [
     "numpy",
     "rich",
+    "scipy",
     "xarray",
+    "ssgw @ git+https://github.com/wavesgroup/ssgw",
 ]
 
 [tool.setuptools]
