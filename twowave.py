@@ -171,6 +171,7 @@ def gravity(
     k: float,
     omega: float,
     g0: float = 9.8,
+    cg: float = 0.0,
     wave_type: str = "linear",
     nonlinear_props: tuple = None,
     curvilinear: bool = True,
@@ -180,9 +181,9 @@ def gravity(
     W = orbital_vertical_velocity(x, z, t, a, k, omega, wave_type, nonlinear_props)
     Cp = omega / k
     dx = np.diff(x)[0]
-    a_z = -diff(W) / dx * (Cp - U)
+    a_z = -diff(W) / dx * (Cp - U - cg)
     if curvilinear:
-        a_x = -diff(U) / dx * (Cp - U)
+        a_x = -diff(U) / dx * (Cp - U - cg)
         slope = surface_slope(x, t, a, k, omega, wave_type, nonlinear_props)
         g = g0 * np.cos(slope) + a_z * np.cos(slope) + a_x * np.sin(slope)
     else:
@@ -360,9 +361,11 @@ class WaveModulationModel:
         self.k = np.zeros((self.num_time_steps, self.grid_size), dtype=np.float32)
         self.a = np.zeros_like(self.k)
         self.N = np.zeros_like(self.k)
+        self.cg = np.zeros_like(self.k)
         self.k[0] = self.k_short
         self.a[0] = self.a_short
         self.N[0] = 1  # FIXME: This is a placeholder value.
+        self.cg[0] = 0.5 * angular_frequency(self.grav0, self.k[0]) / self.k[0]
 
         # Allocate and initialize short-wave diagnostic fields.
         self.g = np.zeros_like(self.k)
@@ -490,6 +493,7 @@ class WaveModulationModel:
             self.k_long,
             self.omega_long,
             self.grav0,
+            self.cg[self.current_time_step],
             wave_type=self._wave_type,
             nonlinear_props=self.nonlinear_props,
             curvilinear=self.curvilinear,
@@ -500,6 +504,8 @@ class WaveModulationModel:
         self.omega[self.current_time_step] = omega
 
         Cg = omega / k / 2
+        self.cg[self.current_time_step] = Cg
+
         k_propagation_tendency = -Cg * diff(k) / self.ds
         k_advection_tendency = -vel * diff(k) / self.ds
         k_convergence_tendency = -k * diff(vel) / self.ds
@@ -522,11 +528,6 @@ class WaveModulationModel:
     def waveaction_tendency(self, N, t):
         """Compute the tendencies of the wave action balance at time t."""
         eta_ramp = self.get_elevation_ramp(t)
-
-        if self._wave_type == "nonlinear":
-            self.nonlinear_props = nonlinear_wave_properties(
-                eta_ramp * self.a_long, self.k_long, self.grav0
-            )
 
         eta = self.elevation(
             self.x,
@@ -591,15 +592,19 @@ class WaveModulationModel:
             self.k_long,
             self.omega_long,
             self.grav0,
+            self.cg[self.current_time_step],
             wave_type=self._wave_type,
             nonlinear_props=self.nonlinear_props,
             curvilinear=self.curvilinear,
         )
+
         Cg = (
             angular_frequency(g, self.k[self.current_time_step])
             / self.k[self.current_time_step]
             / 2
         )
+        self.cg[self.current_time_step] = Cg
+
         N_propagation_tendency = -Cg * diff(N) / self.ds
         N_advection_tendency = -vel * diff(N) / self.ds
         N_convergence_tendency = -N * diff(vel) / self.ds
