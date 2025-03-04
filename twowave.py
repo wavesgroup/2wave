@@ -39,11 +39,9 @@ def elevation(
         x_array = np.atleast_1d(x)
         result = np.zeros_like(x_array, dtype=float)
 
-        # Apply for each x value
+        # Apply a phase shift of the elevations by interpolating
         for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
             x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Interpolate elevation at the phase-shifted position
             result[i] = np.interp(x_phase * k, positions, elevations, period=2 * np.pi)
 
         # Return scalar if input was scalar
@@ -82,17 +80,13 @@ def surface_slope(
         result = np.zeros_like(x_array, dtype=float)
 
         # Calculate dense slopes once
-        dense_pos = np.linspace(0, 2 * np.pi, 1000)
-        dense_elev = np.interp(dense_pos, positions, elevations, period=2 * np.pi)
-        dx = dense_pos[1] - dense_pos[0]
-        slopes = np.gradient(dense_elev, dx)
+        dx = positions[1] - positions[0]
+        slopes = np.gradient(elevations, dx)
 
-        # Apply for each x value
+        # Apply a phase shift of the slopes by interpolating
         for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
             x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Interpolate slope at the requested position
-            result[i] = np.interp(x_phase * k, dense_pos, slopes, period=2 * np.pi) / k
+            result[i] = np.interp(x_phase * k, positions, slopes, period=2 * np.pi) / k
 
         # Return scalar if input was scalar
         return result[0] if np.isscalar(x) else result
@@ -124,11 +118,9 @@ def orbital_horizontal_velocity(
         x_array = np.atleast_1d(x)
         result = np.zeros_like(x_array, dtype=float)
 
-        # Apply for each x value
+        # Apply a phase shift of the horizontal velocities by interpolating
         for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
             x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Get horizontal velocity at this position
             result[i] = np.interp(x_phase * k, positions, u, period=2 * np.pi)
 
         # Return scalar if input was scalar
@@ -161,11 +153,9 @@ def orbital_vertical_velocity(
         x_array = np.atleast_1d(x)
         result = np.zeros_like(x_array, dtype=float)
 
-        # Apply for each x value
+        # Apply a phase shift of the vertical velocities by interpolating
         for i, xi in enumerate(x_array):
-            # Apply phase shift based on time
             x_phase = (xi - omega / k * t) % (2 * np.pi / k)
-            # Get vertical velocity at this position
             result[i] = np.interp(x_phase * k, positions, w, period=2 * np.pi)
 
         # Return scalar if input was scalar
