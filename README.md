@@ -5,12 +5,15 @@ riding on longer waves.
 
 ## Features
 
-* Solves the full wave crest and action balance equations in 1-d.
-* Linear (1st order) or Stokes (3rd order) long waves
+* Solves the nonlinear wave crest and action balance equations in 1-d.
+* Wave types:
+  - 1st order linear wave
+  - 3rd order Stokes wave
+  - Fully nonlinear wave using [SSGW](https://github.com/wavesgroup/ssgw) by Clamond & Dutykh (2018, JFM)
 * Infinite long-wave trains or long-wave groups
 * Effective gravity, propagation, and advection in curvilinear coordinates
-* Optionally, output all tendencies at all time steps
 * Output as Xarray Dataset
+* Optionally, output all tendencies at all time steps
 
 ## Getting started
 

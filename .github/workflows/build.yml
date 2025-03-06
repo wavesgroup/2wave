@@ -20,7 +20,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -U pip pytest
+        pip install -U pip pytest git+https://github.com/wavesgroup/ssgw
         pip install -U .
 
     - name: Run tests
